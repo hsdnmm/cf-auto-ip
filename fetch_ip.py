@@ -1,42 +1,61 @@
 import re
-import requests
+import urllib.request
 from bs4 import BeautifulSoup
 
 URL = "https://v2rayssr.com/cfip/"
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-}
+
 
 def fetch_ips():
-    response = requests.get(URL, headers=headers, timeout=15)
-    response.encoding = 'utf-8'
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
-    rows = soup.find_all('tr')
-    
-    ip_list = []
-    
-    for row in rows:
-        cols = row.find_all('td')
-        if len(cols) >= 3:
-            isp = cols[1].text.strip()
-            # 提取表格中的纯 IP 地址
-            raw_ip = cols[2].text.replace('已复制!', '').strip()
-            
-            # 正则校验是否为合法 IPv4 / IPv6
-            if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', raw_ip) or ':' in raw_ip:
-                # 拼接格式：IP#线路名称
-                ip_list.append(f"{raw_ip}#{isp}优选")
+    req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0"})
+    try:
+        html = urllib.request.urlopen(req).read().decode("utf-8")
+    except Exception as e:
+        print(f"请求失败: {e}")
+        return
 
-    # 取前 15 个延迟最低/速度最快的 IP
-    top_ips = ip_list[:15]
-    
-    if top_ips:
-        with open("ip.txt", "w", encoding="utf-8") as f:
-            f.write("\n".join(top_ips))
-        print("✅ 成功提取并保存了最新 IP！")
-    else:
-        print("⚠️ 未提取到合适数据，请检查网页格式。")
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    if not table:
+        print("未找到表格数据")
+        return
+
+    ct_ips = []  # 电信
+    cu_ips = []  # 联通
+
+    for row in table.find_all("tr"):
+        cols = [
+            ele.text.strip().replace("已复制!", "").strip()
+            for ele in row.find_all(["td", "th"])
+        ]
+        if len(cols) >= 3:
+            line_type = cols[1]
+            ip = cols[2]
+
+            # 校验是否为合法 IPv4 地址
+            if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip):
+                if "电信" in line_type:
+                    ct_ips.append(ip)
+                elif "联通" in line_type:
+                    cu_ips.append(ip)
+
+    # 取延迟最低/速度最快的第一个 IP（页面已按速度/排名排序）
+    best_ct = ct_ips[0] if ct_ips else ""
+    best_cu = cu_ips[0] if cu_ips else ""
+
+    # 保存电信最快 IP
+    with open("ct_fastest.txt", "w", encoding="utf-8") as f:
+        f.write(best_ct)
+
+    # 保存联通最快 IP
+    with open("cu_fastest.txt", "w", encoding="utf-8") as f:
+        f.write(best_cu)
+
+    # 保存合并文本（多行或单行带标签均可，以下示例按换行保存）
+    with open("ip.txt", "w", encoding="utf-8") as f:
+        f.write(f"# 电信最快\n{best_ct}\n# 联通最快\n{best_cu}\n")
+
+    print(f"抓取完成！电信最快: {best_ct}，联通最快: {best_cu}")
+
 
 if __name__ == "__main__":
     fetch_ips()
