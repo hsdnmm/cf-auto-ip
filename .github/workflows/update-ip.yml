@@ -2,7 +2,7 @@ name: Auto Update Cloudflare IP
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每天 UTC 0:00 (北京时间 8:00) 自动更新
+    - cron: '0 0 * * *'  # 每天 UTC 0:00 (北京时间早上 8:00) 运行
   workflow_dispatch:
 
 jobs:
@@ -20,10 +20,6 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-
       - name: Run fetch script
         run: python fetch_ip.py
 
@@ -31,14 +27,12 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add ip.txt
           
-          # 暂存所有更改（包括文件新增、修改和删除）
-          git add -A
-          
-          # 检查是否有变更需要提交
-          if git diff --staged --quiet; then
-            echo "没有新的 IP 变更，跳过提交"
-          else
+          # 判断是否有改动，防止没有改动时 git commit 抛出 exit code 1
+          if git status --porcelain | grep -q "ip.txt"; then
             git commit -m "auto: update ip.txt [skip ci]"
             git push
+          else
+            echo "ip.txt 没有变化，无需提交"
           fi
