@@ -2,17 +2,14 @@ name: Auto Update Cloudflare IP
 
 on:
   schedule:
-    # 每天 UTC 0:00 (即北京时间早上 8:00) 定时运行
-    - cron: '0 0 * * *'
-  # 支持在 GitHub 页面手动点击触发
+    - cron: '0 0 * * *'  # 每天 UTC 0:00 (北京时间早上 8:00) 运行
   workflow_dispatch:
 
 jobs:
   update-ip:
     runs-on: ubuntu-latest
-
     permissions:
-      contents: write  # 赋予写入仓库权限
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -35,11 +32,10 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add ct_fastest.txt cu_fastest.txt ip.txt
-          # 检查是否有文件更新，若无更新则忽略提交
+          git add ip.txt
           if git diff --staged --quiet; then
-            echo "No changes in IP files."
+            echo "No changes in ip.txt."
           else
-            git commit -m "auto: update fastest CT & CU IPs [skip ci]"
+            git commit -m "auto: update ip.txt [skip ci]"
             git push
           fi
