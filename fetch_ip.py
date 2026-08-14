@@ -27,27 +27,29 @@ def fetch_ips():
             if res_data.get("code") == 0 and "data" in res_data:
                 ip_data = res_data["data"]
                 
-                # 遍历 CT (电信), CU (联通), CM (移动) 列表中的所有 IP
+                # 遍历 CT (电信), CU (联通), CM (移动) 列表中的 IP
                 for line in ["CT", "CU", "CM"]:
                     for item in ip_data.get(line, []):
                         ip = item.get("ip")
-                        # 仅做去重与非空校验，不再限制 IP 开头
-                        if ip and ip not in all_ips:
+                        # 重新加回限制：必须以 172. 开头且不重复
+                        if ip and ip.startswith("172.") and ip not in all_ips:
                             all_ips.append(ip)
-                            print(f"提取到 IP [{line}]: {ip}")
+                            print(f"符合条件的 IP [{line}]: {ip}")
             else:
                 print(f"API 返回错误或数据异常: {res_data.get('message')}")
 
     except Exception as e:
         print(f"抓取 API 数据出现错误: {e}")
 
-    # 如果未抓取到任何 IP，写入默认保底 IP
+    # 如果未抓取到符合条件的 IP，写入 172 开头的保底 IP
     if not all_ips:
-        print("未提取到 IP，写入保底 IP")
+        print("未提取到符合条件（172.开头）的 IP，写入保底 IP")
         all_ips = [
-            "104.19.45.241",
-            "104.16.88.178",
-            "104.19.45.7"
+            "172.64.229.52",
+            "172.64.79.228",
+            "172.64.48.55",
+            "172.64.229.86",
+            "172.64.89.156"
         ]
 
     # 写入 ip.txt 文件
