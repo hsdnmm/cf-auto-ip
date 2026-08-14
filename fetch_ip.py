@@ -27,16 +27,15 @@ def fetch_ips():
             html = response.read().decode("utf-8")
             
             # 使用正则抓取表格中包含 IP 和 速度(mb/s) 的行
-            # 匹配模式：IP地址 ... 速度数值mb/s
             pattern = r'((?:\d{1,3}\.){3}\d{1,3})[\s\S]*?([\d.]+)\s*mb/s'
             matches = re.findall(pattern, html, re.IGNORECASE)
             
             for ip, speed_str in matches:
                 try:
                     speed = float(speed_str)
-                    # 过滤速度大于等于 5MB/s 且非保留地址的 IP
-                    if speed >= 5.0:
-                        if not ip.startswith(("0.", "127.", "255.", "192.168.", "10.")) and ip not in all_ips:
+                    # 限制条件：速度 >= 5.0 MB/s 且 必须是 172. 开头的 IP
+                    if speed >= 5.0 and ip.startswith("172."):
+                        if ip not in all_ips:
                             all_ips.append(ip)
                             print(f"符合条件的 IP: {ip} (速度: {speed} MB/s)")
                 except ValueError:
@@ -45,18 +44,15 @@ def fetch_ips():
     except Exception as e:
         print(f"抓取页面出现错误: {e}")
         
-    # 如果因防护或无符合条件 IP，写入保底 IP
+    # 如果未抓取到符合条件（>=5MB/s 且 172.开头）的 IP，写入 172 开头的保底 IP
     if not all_ips:
-        print("未提取到符合条件（>=5MB/s）的动态 IP，写入保底 IP")
+        print("未提取到符合条件（>=5MB/s 且 172.开头）的 IP，写入 172 保底 IP")
         all_ips = [
-            "104.16.242.6",
-            "104.20.50.84",
-            "104.24.33.100",
-            "104.17.22.11",
+            "172.64.229.52",
+            "172.64.79.228",
             "172.64.48.55",
-            "162.159.19.159",
-            "162.159.60.190",
-            "162.159.43.144"
+            "172.64.229.86",
+            "172.64.89.156"
         ]
 
     # 写入 ip.txt 文件
